@@ -1,23 +1,11 @@
 from tqdm import tqdm
 import torch
 from torch import nn, optim
-from torchvision import transforms
 from torch.nn import functional as F
+from matplotlib import pyplot as plt
+from torchsummary import summary
 
-# Train data transformations
-train_transforms = transforms.Compose([
-    transforms.RandomApply([transforms.CenterCrop(22), ], p=0.1),
-    transforms.Resize((28, 28)),
-    transforms.RandomRotation((-15., 15.), fill=0),
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,)),
-    ])
-
-# Test data transformations
-test_transforms = transforms.Compose([
-    transforms.ToTensor(),
-    transforms.Normalize((0.1307,), (0.3081,)),
-    ])
+from utils import GetCorrectPredCount
 
 train_losses = []
 test_losses = []
@@ -44,11 +32,7 @@ class Net(nn.Module):
         x = self.fc2(x)
         return F.log_softmax(x, dim=1)
 
-
-def GetCorrectPredCount(pPrediction, pLabels):
-  return pPrediction.argmax(dim=1).eq(pLabels).sum().item()
-
-def train(model, device, train_loader, optimizer):
+def model_train(model, device, train_loader, optimizer):
     model.train()
     pbar = tqdm(train_loader)
 
@@ -82,7 +66,7 @@ def train(model, device, train_loader, optimizer):
     train_losses.append(train_loss/len(train_loader))
 
 
-def test(model, device, test_loader, criterion):
+def model_test(model, device, test_loader):
     model.eval()
     test_loss = 0
     correct = 0
@@ -108,18 +92,31 @@ def test(model, device, test_loader, criterion):
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
-def modelling(train_loader, test_loader):
+
+def plot_loss_n_acc():
+    """
+    plots the train and test
+    losses and accuracies
+    Parameters
+    ----------
+    losses : (train_losses, test_losses)
+        train and test losses values for each batch
+    accuracies : (train_acc, test_acc)
+        train and test accuracy values for each batch
+    """
+    # performance and loss curves
+    fig, axs = plt.subplots(2, 2, figsize=(15,10))
+    axs[0, 0].plot(train_losses)
+    axs[0, 0].set_title("Training Loss")
+    axs[1, 0].plot(train_acc)
+    axs[1, 0].set_title("Training Accuracy")
+    axs[0, 1].plot(test_losses)
+    axs[0, 1].set_title("Test Loss")
+    axs[1, 1].plot(test_acc)
+    axs[1, 1].set_title("Test Accuracy")
+
+def summary_printer(model):
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-    model = Net().to(device)
-    optimizer = optim.SGD(model.parameters(), lr=0.01, momentum=0.9)
-    scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=15, gamma=0.1, verbose=True)
-    num_epochs = 2
-
-
-    for epoch in range(1, num_epochs+1):
-        print(f'Epoch {epoch}')
-        train(model, device, train_loader, optimizer)
-        test(model, device, test_loader)
-        scheduler.step()
-    return (train_acc, test_acc), (train_losses, test_losses)
+    model = model.to(device)
+    return summary(model, input_size=(1, 28, 28))
