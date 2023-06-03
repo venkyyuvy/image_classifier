@@ -5,16 +5,18 @@ This repository contains the scripts to develop a image classifier in PyTorch.
 # Usage
 
 > ## `Utils.py`
-> Plotting contains functions for primarily two process.
+> Utils provides functions for following list of activites.
 > ### Data preparation
 > This python script provides the neccessary functions for preparing the dataset by doing the following operations
 > - Builds a PyTorch Dataset using downloaded MNIST dataset 
 > - DataLoader which includes data transformation
 >
 > ### Plotting
-> It also provides function for plotting a batch of images and plotting the performance curves.
+> - provides function for plotting a `x` number of images from a batch.
+> ### Performance
+> - provides utils function to calculate the accuracy of the model based on the prediction and actuals of target values.
 > ## `Model.ipynb`
-> This script helps us create a PyTorch convolution model with following architecture and it has the functions for training and testing the script.
+> This script helps us create a PyTorch convolution model with following architecture and it has the functions for training and testing the script. Also helps us with plotting the performance curves.
 >
     ----------------------------------------------------------------
             Layer (type)               Output Shape         Param #
