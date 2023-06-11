@@ -12,25 +12,55 @@ test_losses = []
 train_acc = []
 test_acc = []
 
-class Net(nn.Module):
-    def __init__(self):
-        super(Net, self).__init__()
-        self.conv1 = nn.Conv2d(1, 32, kernel_size=3)
-        self.conv2 = nn.Conv2d(32, 64, kernel_size=3)
-        self.conv3 = nn.Conv2d(64, 128, kernel_size=3)
-        self.conv4 = nn.Conv2d(128, 256, kernel_size=3)
-        self.fc1 = nn.Linear(4096, 50)
-        self.fc2 = nn.Linear(50, 10)
 
+class Net(nn.Module):
+    def __init__(self, drop_p=0.15):
+        super(Net, self).__init__()
+        self.conv1 = nn.Sequential(
+            nn.Conv2d(1, 32, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 16, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(16),
+            nn.MaxPool2d(2, 2),
+            nn.Dropout(drop_p)
+        )
+        
+        self.conv2 = nn.Sequential(
+            nn.Conv2d(16, 16, 1, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(16),
+            nn.Conv2d(16, 32, 3, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(32),
+            nn.Conv2d(32, 16, 3, stride=2, padding=1),
+            nn.ReLU(),
+            nn.BatchNorm2d(16),
+            nn.MaxPool2d(2, 2),
+            nn.Dropout(drop_p)
+        )
+        
+        self.conv3 = nn.Sequential(
+            nn.Conv2d(16, 128, 1),
+            nn.ReLU(),
+            nn.BatchNorm2d(128),
+            nn.MaxPool2d(2, 2),
+            nn.Dropout(drop_p)
+        )
+        self.avg = nn.AvgPool2d(2)
+        self.fc = nn.Sequential(
+            nn.Linear(128, 10)
+        )
     def forward(self, x):
-        x = F.relu(self.conv1(x), 2)
-        x = F.relu(F.max_pool2d(self.conv2(x), 2)) 
-        x = F.relu(self.conv3(x), 2)
-        x = F.relu(F.max_pool2d(self.conv4(x), 2)) 
-        x = x.view(-1, 4096)
-        x = F.relu(self.fc1(x))
-        x = self.fc2(x)
-        return F.log_softmax(x, dim=1)
+        x = self.conv1(x)
+        x = self.conv2(x)
+        x = self.conv3(x)
+        x = self.avg(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        x = F.log_softmax(x, dim=1)
+        return x
 
 def model_train(model, device, train_loader, optimizer):
     model.train()
