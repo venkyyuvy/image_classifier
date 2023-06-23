@@ -37,14 +37,13 @@ Experiment different model architecture for achieving test accuracy more than 99
 
 ## `Model_3`
 
-
 ### Target:
 - Data Augumentation
 
 ### Results:
 - Parameters: 7.9 K
 - Best Train Accuracy: 99.01
-- Best Test Accuracy: 99.4
+- Best Test Accuracy: 99.3
 
 ### Analysis:
 - augumentation helps a lot

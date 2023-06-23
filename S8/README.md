@@ -1,7 +1,6 @@
 ## Dataset preparation:
 
 ### CIFAR 10 dataset
-### Data augumentation
 ## Model summary:
 ----------------------------------------------------------------
         Layer (type)               Output Shape         Param #
@@ -61,15 +60,23 @@ Training accuracy: 74.35%
 Test accuracy: 71.53%
 ### Performance curves:
 ### Misclassification plots
+![wrong_predictions](/image_classifier/S8/misclassifications/batch_norm.png)
 
 ## Layer Normalization
 Training accuracy:  
 Test accuracy:
 ### Performance curves:
 ### Misclassification plots
+![wrong_predictions](/image_classifier/S8/misclassifications/layer_norm.png)
+
 
 ## Group Normalization
-Training accuracy:  
-Test accuracy:
+* Training accuracy: 56.24
+* Test accuracy: 55.67%
 ### Performance curves:
+![performance](/image_classifier/S8/performance_curves/group_norm.png)
 ### Misclassification plots
+![wrong_predictions](/image_classifier/S8/misclassifications/group_normalization.png)
+
+## Analysis:
+Batch and group normalization works better for convolutional architectures.
