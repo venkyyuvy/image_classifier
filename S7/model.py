@@ -75,8 +75,7 @@ def train(model, device, train_loader, optimizer, epoch):
 
     # Update pbar-tqdm
 
-    pred = y_pred.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-    correct += GetCorrectPredCount(pred, target)
+    correct += GetCorrectPredCount(y_pred, target)
     processed += len(data)
 
     pbar.set_description(desc= f'Loss={loss.item()} Batch_id={batch_idx} Accuracy={100*correct/processed:0.2f}')
@@ -91,8 +90,7 @@ def test(model, device, test_loader):
             data, target = data.to(device), target.to(device)
             output = model(data)
             test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
-            pred = output.argmax(dim=1, keepdim=True)  # get the index of the max log-probability
-            correct += GetCorrectPredCount(pred, target)
+            correct += GetCorrectPredCount(output, target)
 
 
     test_loss /= len(test_loader.dataset)
