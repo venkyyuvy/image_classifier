@@ -1,9 +1,10 @@
 from tqdm import tqdm
 import torch
-from torch import nn, optim
+from torch import nn
 from torch.nn import functional as F
 from matplotlib import pyplot as plt
 from torchsummary import summary
+import pandas as pd
 
 from utils import GetCorrectPredCount
 
@@ -12,19 +13,26 @@ test_losses = []
 train_acc = []
 test_acc = []
 
+
 def get_layer(layer_type, in_channel=None, out_channel=None,
-              dropout_value=0.05, norm='batch',):
-    norm_map = {'batch': nn.BatchNorm2d,
-     'layer': nn.GroupNorm,
-     'group': nn.GroupNorm} #norm_layer(4, out_channel),
-    norm_layer = norm_map[norm] 
+              dropout_value=0.05, norm='batch', n_group=4,
+              ):
     if layer_type == 'C':
+        if norm == 'batch':
+            norm_layer = nn.BatchNorm2d(out_channel)
+        elif norm == 'layer':
+            norm_layer = nn.GroupNorm(1, out_channel)
+        elif norm == 'group':
+            norm_layer = nn.GroupNorm(n_group, out_channel)
+        else: 
+            raise ValueError('valid inputs for norm are '+
+            '(batch, layer, group)')
         return nn.Sequential(
             nn.Conv2d(in_channels=in_channel,
                       out_channels=out_channel,
                       kernel_size=(3, 3), padding=1, bias=False),
             nn.ReLU(),
-            norm_layer(out_channel, out_channel),
+            norm_layer,
             nn.Dropout(dropout_value)
         )
     elif layer_type == 'c':
@@ -36,8 +44,24 @@ def get_layer(layer_type, in_channel=None, out_channel=None,
     elif layer_type == 'G':
         return nn.AdaptiveAvgPool2d(output_size=1)
 
+class Net(nn.Module):
+    def __init__(self, schema, channels, dropout_value=0.01,
+        norm='batch', n_group=4):
+        super(Net, self).__init__()
+        self.layers = nn.ModuleList()
+        for layer_type, channel_in, channel_out in zip(
+            schema, [3, *channels], channels):
+            self.layers.append(get_layer(
+                layer_type, channel_in, channel_out,
+                dropout_value, norm, n_group))
 
-def train(model, device, train_loader, optimizer, epoch):
+    def forward(self, x):
+        for layer in self.layers:
+            x = layer(x)
+        x = x.view(-1, 10)
+        return F.log_softmax(x, dim=-1)
+
+def train(model, device, train_loader, optimizer):
   model.train()
   pbar = tqdm(train_loader)
   correct = 0
@@ -48,8 +72,6 @@ def train(model, device, train_loader, optimizer, epoch):
 
     # Init
     optimizer.zero_grad()
-    # In PyTorch, we need to set the gradients to zero before starting to do backpropragation because PyTorch accumulates the gradients on subsequent backward passes.
-    # Because of this, when you start your training loop, ideally you should zero out the gradients so that you do the parameter update correctly.
 
     # Predict
     y_pred = model(data)
@@ -67,7 +89,9 @@ def train(model, device, train_loader, optimizer, epoch):
     correct += GetCorrectPredCount(y_pred, target)
     processed += len(data)
 
-    pbar.set_description(desc= f'Loss={loss.item()} Batch_id={batch_idx} Accuracy={100*correct/processed:0.2f}')
+    pbar.set_description(
+        desc= f'Loss={loss.item():0.4f} Batch_id={batch_idx} '+
+        f'Accuracy={100*correct/processed:0.2f}')
     train_acc.append(100*correct/processed)
 
 def test(model, device, test_loader):
@@ -78,18 +102,36 @@ def test(model, device, test_loader):
         for data, target in test_loader:
             data, target = data.to(device), target.to(device)
             output = model(data)
-            test_loss += F.nll_loss(output, target, reduction='sum').item()  # sum up batch loss
+            test_loss += F.nll_loss(output, target, reduction='sum').item()
             correct += GetCorrectPredCount(output, target)
 
 
     test_loss /= len(test_loader.dataset)
     test_losses.append(test_loss)
 
-    print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
+    print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
         test_loss, correct, len(test_loader.dataset),
         100. * correct / len(test_loader.dataset)))
 
     test_acc.append(100. * correct / len(test_loader.dataset))
+
+def get_pred_n_actuals(model, test_data, batch_size, device):
+    results_df = []
+    kwargs = {
+        'batch_size': batch_size,
+        'shuffle': False,
+        'num_workers': 4,
+        'pin_memory': True}
+    test_loader = torch.utils.data.DataLoader(test_data, **kwargs)
+    for _, (data, target) in enumerate(test_loader):
+        data, target = data.to(device), target.to(device)
+        output = model(data)
+        pred_label = output.argmax(dim=1)
+        results_df.append(
+            pd.DataFrame({"prediction": pred_label.cpu().numpy(),
+                        "target": target.cpu().numpy()}))
+
+    return pd.concat(results_df).reset_index(drop=True)
 
 def plot_loss_n_acc():
     """

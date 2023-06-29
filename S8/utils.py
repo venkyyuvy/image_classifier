@@ -36,3 +36,20 @@ def plot_img_batch(train_loader, n_img=12):
 
 def GetCorrectPredCount(pPrediction, pLabels):
   return pPrediction.argmax(dim=1).eq(pLabels).sum().item()
+
+def plot_misclassified_images(labels_df, plot_test_data, 
+        class_labels,
+        nrows=2, ncols=5, figsize=(25,10),
+        title='Misclassified images', ):
+    fig, axes = plt.subplots(nrows, ncols, figsize=figsize, )
+    fig.suptitle(title, weight='bold', size=14)
+    samples = labels_df.query("prediction != target").sample(10)
+    axes = axes.ravel()
+
+
+    for (ix, row), ax in zip(samples.iterrows(), axes):
+        img = plot_test_data[ix][0]
+        ax.imshow(img)
+        ax.set_title(
+            f'{class_labels[row.prediction]}|{class_labels[row.target]}',
+            fontsize=12)
