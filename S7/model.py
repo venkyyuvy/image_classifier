@@ -114,8 +114,8 @@ def plot_loss_n_acc():
         train and test accuracy values for each batch
     """
     # performance and loss curves
-    fig, axs = plt.subplots(2, 2, figsize=(15,10))
-    axs[0, 0].plot(train_losses)
+    fig, axs = plt.subplots(2, 2, figsize=(15, 10))
+    axs[0, 0].plot([l.cpu().item() for l in train_losses])
     axs[0, 0].set_title("Training Loss")
     axs[1, 0].plot(train_acc)
     axs[1, 0].set_title("Training Accuracy")

@@ -1,23 +1,40 @@
+import numpy as np
+import matplotlib.pyplot as plt
+from PIL import Image
 import torch
 from torchvision import datasets
-import matplotlib.pyplot as plt
+from torchvision.datasets import MNIST
+
+class MNISTAlbumentationsDataset(MNIST):
+    def __init__(self, *args,  **kwargs):
+        super().__init__(*args, **kwargs)
+    def __getitem__(self, idx):
+        image, label = self.data[idx], int(self.targets[idx])
+        image = Image.fromarray(image.numpy(), mode="L")
+        if self.transform:
+            image_np = np.array(image)
+            augmented = self.transform(image=image_np)
+            image = augmented['image']
+        return image, label
+
 
 def prepare_mnist_data(train_transforms, test_transforms,
-    data_path='../data', batch_size=512):
-    train_data = datasets.MNIST(
-        data_path, train=True, download=True, transform=train_transforms)
-    test_data = datasets.MNIST(
-        data_path, train=False, download=True, transform=test_transforms)
-    SEED = 1
+    data_path='../data', batch_size=512, seed=1, is_alb_transforms=False):
+    MNISTdataset = MNISTAlbumentationsDataset if is_alb_transforms else datasets.MNIST
+    print(MNISTdataset)
+    train_data = MNISTdataset(
+            root=data_path,
+            train=True, download=True, transform=train_transforms)
+    test_data = MNISTdataset(
+            data_path, train=False, download=True, transform=test_transforms)
 
     cuda = torch.cuda.is_available()
     print("CUDA Available?", cuda)
 
     # For reproducibility
-    torch.manual_seed(SEED)
-
+    torch.manual_seed(seed)
     if cuda:
-        torch.cuda.manual_seed(SEED)
+        torch.cuda.manual_seed(seed)
 
     # dataloader arguments - something you'll fetch these from cmdprmt
     dataloader_args = dict(
@@ -27,7 +44,6 @@ def prepare_mnist_data(train_transforms, test_transforms,
     test_loader = torch.utils.data.DataLoader(test_data, **dataloader_args)
 
     return train_loader, test_loader
-
 
 def plot_img_batch(train_loader, n_img=12):
     batch_data, batch_label = next(iter(train_loader)) 
