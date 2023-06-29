@@ -10,7 +10,6 @@ def prepare_mnist_data(train_transforms, test_transforms,
         data_path, train=False, download=True, transform=test_transforms)
     SEED = 1
 
-    # CUDA?
     cuda = torch.cuda.is_available()
     print("CUDA Available?", cuda)
 
@@ -22,9 +21,7 @@ def prepare_mnist_data(train_transforms, test_transforms,
 
     # dataloader arguments - something you'll fetch these from cmdprmt
     dataloader_args = dict(
-        shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True)\
-        if cuda else dict(shuffle=True, batch_size=64)
-
+        shuffle=True, batch_size=batch_size, num_workers=4, pin_memory=True)
 
     train_loader = torch.utils.data.DataLoader(train_data, **dataloader_args)
     test_loader = torch.utils.data.DataLoader(test_data, **dataloader_args)

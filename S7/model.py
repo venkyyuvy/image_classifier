@@ -48,7 +48,7 @@ class Net(nn.Module):
         return F.log_softmax(x, dim=-1)
 
 
-def train(model, device, train_loader, optimizer, epoch):
+def train(model, device, train_loader, optimizer):
   model.train()
   pbar = tqdm(train_loader)
   correct = 0
