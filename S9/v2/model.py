@@ -7,7 +7,6 @@ from torchsummary import summary
 import pandas as pd
 
 from utils import GetCorrectPredCount
-from torch.utils.tensorboard import SummaryWriter
 
 train_losses = []
 test_losses = []
