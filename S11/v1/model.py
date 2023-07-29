@@ -89,7 +89,9 @@ class ResNet(nn.Module):
 def ResNet18():
     return ResNet(BasicBlock, [2, 2, 2, 2])
 
-def train(model, device, train_loader, optimizer, scheduler):
+def train(
+    model, device, train_loader, optimizer, scheduler,
+    writer):
   model.train()
   pbar = tqdm(train_loader)
   correct = 0
@@ -124,8 +126,11 @@ def train(model, device, train_loader, optimizer, scheduler):
         f'LR={scheduler.get_last_lr()[0]:0.5f} '+
         f'Accuracy={100*correct/processed:0.2f}')
     train_acc.append(100*correct/processed)
+    writer.add_scalar('train_loss', batch_idx, loss.item())
+    writer.add_scalar('train_acc', batch_idx, 100*correct/processed)
+    writer.add_scalar('LR', batch_idx, scheduler.get_last_lr()[0])
 
-def test(model, device, test_loader):
+def test(model, device, test_loader, writer):
     model.eval()
     test_loss = 0
     correct = 0
@@ -151,6 +156,8 @@ def test(model, device, test_loader):
         acc))
 
     test_acc.append(acc)
+    writer.add_scalar('test_loss', batch_idx, test_loss)
+    writer.add_scalar('train_acc', batch_idx, acc)
     return acc
 
 def get_pred_n_actuals(model, test_loader, device):
@@ -165,7 +172,7 @@ def get_pred_n_actuals(model, test_loader, device):
 
     return pd.concat(results_df).reset_index(drop=True)
 
-def plot_loss_n_acc():
+def plot_loss_n_acc(writer):
     """
     plots the train and test
     losses and accuracies
@@ -186,6 +193,7 @@ def plot_loss_n_acc():
     axs[0, 1].set_title("Test Loss")
     axs[1, 1].plot(test_acc)
     axs[1, 1].set_title("Test Accuracy")
+    writer.add_figure('performance curves', fig)
 
 def summary_printer(model, device='cpu'):
     model = model.to(device)
@@ -193,12 +201,13 @@ def summary_printer(model, device='cpu'):
 
 def lr_finder(
     model, optimizer, criterion, device, train_loader,
-    num_iter=100,
+    writer, num_iter=100, 
     ):
     lr_finder = LRFinder(model, optimizer, criterion, device=device)
     lr_finder.range_test(
         train_loader, end_lr=10, num_iter=num_iter, step_mode='exp',
         )
-    _, suggested_lr = lr_finder.plot(suggest_lr=True)
+    ax, suggested_lr = lr_finder.plot(suggest_lr=True)
+    writer.add_figure('lr_finder', plt.gcf()) 
     lr_finder.reset() 
     return suggested_lr

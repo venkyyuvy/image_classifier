@@ -20,6 +20,10 @@ def prepare_mnist_data(train_transforms, test_transforms,
     test_loader = torch.utils.data.DataLoader(test_data, **kwargs)
     return train_loader, test_loader
 
+def denormalize(data, mean=np.array(NORM_DATA_MEAN), 
+                std=np.array(NORM_DATA_STD)):
+    return data * std + mean
+
 def plot_img_batch(train_loader, class_labels, nrows=2, ncols=6):
     batch_data, batch_label = next(iter(train_loader)) 
 
@@ -28,10 +32,9 @@ def plot_img_batch(train_loader, class_labels, nrows=2, ncols=6):
     for i in range(n_img):
         plt.subplot(nrows, ncols, i+1)
         plt.tight_layout()
-        data = np.transpose(batch_data[i], (1, 2, 0))\
-            *np.array(NORM_DATA_STD) + np.array(NORM_DATA_MEAN)
+        data = denormalize(np.transpose(batch_data[i], (1, 2, 0)))
         data = data.numpy().clip(0, 255)
-        plt.imshow(data) #.astype(np.uint8)) #  
+        plt.imshow(data)
         plt.title(class_labels[batch_label[i].item()], fontsize=5)
         plt.xticks([])
         plt.yticks([])
@@ -54,8 +57,7 @@ def plot_misclassified_images(labels_df, test_dataset,
     subset = torch.utils.data.Subset(test_dataset, subset_indices)
     for i, ((ix, row), ax) in enumerate(zip(samples.iterrows(), axes)):
         data = subset[i][0]
-        data = np.transpose(data, (1, 2, 0))\
-            *np.array(NORM_DATA_STD) + np.array(NORM_DATA_MEAN)
+        data = denormalize(np.transpose(data, (1, 2, 0)))
         img = data.numpy().clip(0, 255)
         ax.imshow(img)
         ax.set_title(

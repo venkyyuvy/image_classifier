@@ -1,6 +1,13 @@
 
-# ResNet 18 architecture for CIFAR10 classification
+# Grad CAM explanability for ResNet 18 architecture 
 
-main.py
+## dataset
 
-train resnet 18 for 20 epochs
+CIFAR10 classification
+
+## main.py
+trains resnet-18 for 20 epochs
+
+## explainer.py
+
+Applies the Grad class activation mapping explainer on last conv layer of the third block
