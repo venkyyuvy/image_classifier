@@ -6,7 +6,9 @@
 CIFAR10 classification
 
 ## main.py
-trains resnet-18 for 20 epochs
+- uses OneCyclePolicy for learning rate schedule (internally uses `lr_finder`)
+- trains resnet-18 for 20 epochs
+- achieves 90% test accuracy
 
 ## explainer.py
 
