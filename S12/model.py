@@ -91,88 +91,17 @@ class ResNet(nn.Module):
 def ResNet18():
     return ResNet(BasicBlock, [2, 2, 2, 2])
 
-def train(
-    model, device, train_loader, optimizer, scheduler,
-    writer):
-  model.train()
-  pbar = tqdm(train_loader)
-  correct = 0
-  processed = 0
-  criterion = nn.CrossEntropyLoss()
-  for batch_idx, (data, target) in enumerate(pbar):
-    # get samples
-    data, target = data.to(device), target.to(device)
-
-    # Init
-    optimizer.zero_grad()
-
-    # Predict
-    y_pred = model(data)
-
-    # Calculate loss
-    loss = criterion(y_pred, target)
-    train_losses.append(loss.item())
-
-    # Backpropagation
-    loss.backward()
-    optimizer.step()
-    scheduler.step()
-
-    # Update pbar-tqdm
-
-    correct += GetCorrectPredCount(y_pred, target)
-    processed += len(data)
-
-    pbar.set_description(
-        desc= f'Loss={loss.item():0.4f} Batch_id={batch_idx} '+
-        f'LR={scheduler.get_last_lr()[0]:0.5f} '+
-        f'Accuracy={100*correct/processed:0.2f}')
-    train_acc.append(100*correct/processed)
-    writer.add_scalar('train_loss', batch_idx, loss.item())
-    writer.add_scalar('train_acc', batch_idx, 100*correct/processed)
-    writer.add_scalar('LR', batch_idx, scheduler.get_last_lr()[0])
-
-def test(model, device, test_loader, writer):
-    model.eval()
-    test_loss = 0
-    correct = 0
-    processed = 0
-    criterion = nn.CrossEntropyLoss()
-    pbar = tqdm(test_loader)
-    with torch.no_grad():
-      for batch_idx, (data, target) in enumerate(pbar):
-            data, target = data.to(device), target.to(device)
-            output = model(data)
-            test_loss += criterion(output, target).item()
-            correct += GetCorrectPredCount(output, target)
-            processed += len(data)
-
-
-
-    test_loss /= len(test_loader.dataset)
-    test_losses.append(test_loss)
-
-    acc = 100. * correct / len(test_loader.dataset)
-    print('Test set: Average loss: {:.4f}, Accuracy: {}/{} ({:.2f}%)\n'.format(
-        test_loss, correct, len(test_loader.dataset),
-        acc))
-
-    test_acc.append(acc)
-    writer.add_scalar('test_loss', test_loss)
-    writer.add_scalar('test_acc', acc)
-    return acc
 
 def get_pred_n_actuals(model, test_loader, device):
-    results_df = []
+    prediction = []
+    actuals = []
     for _, (data, target) in enumerate(test_loader):
         data, target = data.to(device), target.to(device)
+        actuals.append(target.cpu().numpy())
         output = model(data)
         pred_label = output.argmax(dim=1)
-        results_df.append(
-            pd.DataFrame({"prediction": pred_label.cpu().numpy(),
-                          "target": target.cpu().numpy()}))
-
-    return pd.concat(results_df).reset_index(drop=True)
+        prediction.append(pred_label.cpu().numpy())
+    return prediction, actuals
 
 def plot_loss_n_acc(writer):
     """
